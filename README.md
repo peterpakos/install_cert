@@ -1,2 +1,2 @@
 # install_cert
-Script installs SSL cert from remote host into Java keystore
+The script fetches SSL certificate from a remote host and imports it into the specified Java keystore.

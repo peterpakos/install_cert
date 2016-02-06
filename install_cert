@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+#
+# The script fetches SSL certificate from a remote host and imports it into the
+# specified Java keystore.
+#
+# Author: Peter Pakos <peter.pakos@wandisco.com>
+
+set -euo pipefail
+
+SCRIPT_NAME="$(basename "$0")"
+
+usage () {
+  cat <<USAGE
+Usage: ./${SCRIPT_NAME} <HOST> <PORT> <KEYSTOREFILE> <KEYSTOREPASS>
+USAGE
+}
+
+check_tool () {
+  for TOOL in "$@"; do
+    if ! type "${TOOL}" &>/dev/null; then
+      echo "Unable to find ${TOOL} in the PATH"
+      exit 1
+    fi
+  done
+}
+
+check_args () {
+  if [[ $# -lt 4 ]]; then
+    usage
+    exit 1
+  fi
+}
+
+main() {
+  check_args "$@"
+  check_tool openssl keytool
+
+  local host="$1"
+  local port="$2"
+  local keystore_file="$3"
+  local keystore_pass="$4"
+
+  openssl s_client -connect "${host}:${port}" < /dev/null 2>&1 \
+    | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' \
+    > "${host}_${port}.cert"
+
+  keytool -import -noprompt -trustcacerts -alias "$host" \
+    -file "${host}_${port}.cert" -keystore "$keystore_file" \
+    -storepass "$keystore_pass"
+
+  exit 0
+}
+
+main "$@"
